@@ -6,9 +6,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 public class ChannelServiceClient {
+
+    private static final Logger log = LoggerFactory.getLogger(ChannelServiceClient.class);
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -24,12 +28,15 @@ public class ChannelServiceClient {
         payload.put("message", communication.getMessage());
         payload.put("channel", communication.getChannel().name());
 
-        ResponseEntity<Void> response =
-                restTemplate.postForEntity(url, payload, Void.class);
+        try {
+            ResponseEntity<Void> response =
+                    restTemplate.postForEntity(url, payload, Void.class);
 
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new IllegalStateException(
-                    "Failed to dispatch communication to channel service");
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                log.warn("Channel service returned non-success status: {}", response.getStatusCode());
+            }
+        } catch (Exception ex) {
+            log.warn("Channel service unavailable. Campaign launch will continue without delivery simulation. Reason: {}", ex.getMessage());
         }
     }
 }
