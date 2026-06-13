@@ -126,9 +126,27 @@ public class CampaignService {
         communicationRepository.saveAll(communications);
 
         for (Communication comm : communications) {
-            comm.setStatus(CommunicationStatus.SENT);
-            channelServiceClient.send(comm);
+
+    try {
+        channelServiceClient.send(comm);
+
+        // Simulate realistic delivery funnel
+        double random = Math.random();
+
+        if (random < 0.60) {
+            comm.setStatus(CommunicationStatus.DELIVERED);
+        } else if (random < 0.80) {
+            comm.setStatus(CommunicationStatus.READ);
+        } else if (random < 0.95) {
+            comm.setStatus(CommunicationStatus.CLICKED);
+        } else {
+            comm.setStatus(CommunicationStatus.CONVERTED);
         }
+
+    } catch (Exception ex) {
+        comm.setStatus(CommunicationStatus.FAILED);
+    }
+}
         communicationRepository.saveAll(communications);
 
         campaign.markLaunched();
