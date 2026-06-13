@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: xenopilot-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-xenopilot}
+      POSTGRES_USER: ${POSTGRES_USER:-xenopilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-xenopilot_dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-xenopilot} -d ${POSTGRES_DB:-xenopilot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: xenopilot-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-xenopilot}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-xenopilot}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-xenopilot_dev_password}
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-very-long-production-secret-at-least-256-bits}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-1440}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+    ports:
+      - "8080:8080"
+
+  simulator:
+    build:
+      context: ./channelservice
+    container_name: xenopilot-simulator
+    environment:
+      SERVER_PORT: 8081
+      BACKEND_URL: http://backend:8080
+    ports:
+      - "8081:8081"
+    depends_on:
+      backend:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080/api}
+    container_name: xenopilot-frontend
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080/api}
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
+

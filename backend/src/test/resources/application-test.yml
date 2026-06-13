@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:xenopilot_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+app:
+  cors:
+    allowed-origins: http://localhost:3000
+  jwt:
+    secret: test-secret-that-is-long-enough-for-hmac-sha-signing-256-bit-key
+    expiration-minutes: 60
+  openai:
+    api-key:
+    model: gpt-4.1-mini
